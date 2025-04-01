@@ -17,6 +17,18 @@ public class Test {
 		return input.matches(regex);
 	}
 
+	public static boolean isValidJSON(String input) {
+		input = input.trim();
+
+		if (!input.startsWith("{") || !input.endsWith("}")) {
+			return false;
+		}
+
+		String jsonRegex = "\\{\\s*(\"[^\"]+\"\\s*:\\s*(\"[^\"]*\"|\\d+(\\.\\d+)?|true|false|null|\\{[^{}]*\\}))\\s*(,\\s*\"[^\"]+\"\\s*:\\s*(\"[^\"]*\"|\\d+(\\.\\d+)?|true|false|null|\\{[^{}]*\\}))*\\s*\\}";
+
+		return input.matches(jsonRegex);
+	}
+
 	public static void parseCommand(String input, Map<String, Map<String, List<String>>> myTypes) {
 		String CommandType = "";
 		String Type = "";
@@ -88,7 +100,7 @@ public class Test {
 		if (myTypes.containsKey(Type)) {
 			ErrorMessage("The Type { " + Type + " } already exists");
 		} else {
-			System.out.println(Type + JSONInput);
+			System.out.println(isValidJSON(JSONInput));
 		}
 
 	}
@@ -111,3 +123,5 @@ public class Test {
 
 	}
 }
+
+
