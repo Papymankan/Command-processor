@@ -17,16 +17,57 @@ public class Test {
 		return input.matches(regex);
 	}
 
-	public static boolean isValidJSON(String input) {
-		input = input.trim();
+	// public static boolean isValidJSON(String input) {
+	// input = input.trim();
 
-		if (!input.startsWith("{") || !input.endsWith("}")) {
+	// if (!input.startsWith("{") || !input.endsWith("}")) {
+	// return false;
+	// }
+
+	// String jsonRegex =
+	// "\\{\\s*(\"[^\"]+\"\\s*:\\s*(\"[^\"]*\"|\\d+(\\.\\d+)?|true|false|null|\\{[^{}]*\\}))\\s*(,\\s*\"[^\"]+\"\\s*:\\s*(\"[^\"]*\"|\\d+(\\.\\d+)?|true|false|null|\\{[^{}]*\\}))*\\s*\\}";
+
+	// return input.matches(jsonRegex);
+	// }
+
+	public static boolean isValidJSON(String json) {
+		// Must start and end with curly braces
+		if (!json.startsWith("{") || !json.endsWith("}")) {
 			return false;
 		}
 
-		String jsonRegex = "\\{\\s*(\"[^\"]+\"\\s*:\\s*(\"[^\"]*\"|\\d+(\\.\\d+)?|true|false|null|\\{[^{}]*\\}))\\s*(,\\s*\"[^\"]+\"\\s*:\\s*(\"[^\"]*\"|\\d+(\\.\\d+)?|true|false|null|\\{[^{}]*\\}))*\\s*\\}";
+		// Remove the outermost braces
+		json = json.substring(1, json.length() - 1);
 
-		return input.matches(jsonRegex);
+		// Split top-level key-value pairs
+		String[] pairs = json.split("},");
+		for (int i = 0; i < pairs.length; i++) {
+			// Add '}' back if it was removed by split
+			if (!pairs[i].endsWith("}")) {
+				pairs[i] += "}";
+			}
+
+			// Each pair should match this pattern: "key":{...}
+			if (!pairs[i].matches("^\"[^\"]+\":\\{.*\\}$")) {
+				return false;
+			}
+
+			// Extract inner object
+			int braceIndex = pairs[i].indexOf(":{");
+			String inner = pairs[i].substring(braceIndex + 2, pairs[i].length() - 1);
+
+			if (!inner.isEmpty()) {
+				// Split the inner object by commas
+				String[] innerPairs = inner.split(",");
+
+				for (String pair : innerPairs) {
+					if (!pair.matches("^\"[^\"]+\":(true|false|\"[^\"]*\"|\\d+\\.\\d+|\\d+)$")) {
+						return false;
+					}
+				}
+			}
+		}
+		return true;
 	}
 
 	public static void parseCommand(String input, Map<String, Map<String, List<String>>> myTypes) {
@@ -56,9 +97,9 @@ public class Test {
 
 			JSONInput = input;
 
-			System.out.println(
-					"CommandType = " + CommandType + ".\n" + "Type = " + Type + ".\n" + "Parameter = " + Parameter
-							+ ".\n" + "JSONInput = " + JSONInput + ".");
+			// System.out.println(
+			// 		"CommandType = " + CommandType + ".\n" + "Type = " + Type + ".\n" + "Parameter = " + Parameter
+			// 				+ ".\n" + "JSONInput = " + JSONInput + ".");
 
 			switch (CommandType) {
 				case "create":
@@ -100,7 +141,7 @@ public class Test {
 		if (myTypes.containsKey(Type)) {
 			ErrorMessage("The Type { " + Type + " } already exists");
 		} else {
-			System.out.println(isValidJSON(JSONInput));
+			System.out.println(isValidJSON(JSONInput.replace(" ", "")));
 		}
 
 	}
@@ -123,5 +164,8 @@ public class Test {
 
 	}
 }
+
+
+
 
 
