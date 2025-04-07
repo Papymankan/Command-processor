@@ -1,5 +1,6 @@
 package ir.ac.kntu;
 
+import java.security.Key;
 import java.util.*;
 
 public class Test {
@@ -17,47 +18,27 @@ public class Test {
 		return input.matches(regex);
 	}
 
-	// public static boolean isValidJSON(String input) {
-	// input = input.trim();
-
-	// if (!input.startsWith("{") || !input.endsWith("}")) {
-	// return false;
-	// }
-
-	// String jsonRegex =
-	// "\\{\\s*(\"[^\"]+\"\\s*:\\s*(\"[^\"]*\"|\\d+(\\.\\d+)?|true|false|null|\\{[^{}]*\\}))\\s*(,\\s*\"[^\"]+\"\\s*:\\s*(\"[^\"]*\"|\\d+(\\.\\d+)?|true|false|null|\\{[^{}]*\\}))*\\s*\\}";
-
-	// return input.matches(jsonRegex);
-	// }
-
 	public static boolean isValidJSON(String json) {
-		// Must start and end with curly braces
 		if (!json.startsWith("{") || !json.endsWith("}")) {
 			return false;
 		}
 
-		// Remove the outermost braces
 		json = json.substring(1, json.length() - 1);
 
-		// Split top-level key-value pairs
 		String[] pairs = json.split("},");
 		for (int i = 0; i < pairs.length; i++) {
-			// Add '}' back if it was removed by split
 			if (!pairs[i].endsWith("}")) {
 				pairs[i] += "}";
 			}
 
-			// Each pair should match this pattern: "key":{...}
 			if (!pairs[i].matches("^\"[^\"]+\":\\{.*\\}$")) {
 				return false;
 			}
 
-			// Extract inner object
 			int braceIndex = pairs[i].indexOf(":{");
 			String inner = pairs[i].substring(braceIndex + 2, pairs[i].length() - 1);
 
 			if (!inner.isEmpty()) {
-				// Split the inner object by commas
 				String[] innerPairs = inner.split(",");
 
 				for (String pair : innerPairs) {
@@ -70,7 +51,7 @@ public class Test {
 		return true;
 	}
 
-	public static void parseCommand(String input, Map<String, Map<String, List<String>>> myTypes) {
+	public static void parseCommand(String input, Map<String, Map<String, Map<String, String>>> myTypes) {
 		String CommandType = "";
 		String Type = "";
 		String Parameter = "";
@@ -98,8 +79,9 @@ public class Test {
 			JSONInput = input;
 
 			// System.out.println(
-			// 		"CommandType = " + CommandType + ".\n" + "Type = " + Type + ".\n" + "Parameter = " + Parameter
-			// 				+ ".\n" + "JSONInput = " + JSONInput + ".");
+			// "CommandType = " + CommandType + ".\n" + "Type = " + Type + ".\n" +
+			// "Parameter = " + Parameter
+			// + ".\n" + "JSONInput = " + JSONInput + ".");
 
 			switch (CommandType) {
 				case "create":
@@ -136,12 +118,74 @@ public class Test {
 
 	}
 
-	public static void createType(String Type, String JSONInput, Map<String, Map<String, List<String>>> myTypes) {
+	public static void createType(String Type, String JSONInput,
+			Map<String, Map<String, Map<String, String>>> myTypes) {
 
 		if (myTypes.containsKey(Type)) {
 			ErrorMessage("The Type { " + Type + " } already exists");
 		} else {
-			System.out.println(isValidJSON(JSONInput.replace(" ", "")));
+			if (myTypes.containsKey(Type)) {
+				ErrorMessage("Already, There is a Type with { " + Type + " } name !!!");
+				return;
+			}
+
+			JSONInput = JSONInput.substring(1, JSONInput.length() - 1).replace(" ", ""); // "key":{...},"key":{...}
+
+			Map<String, Map<String, String>> map = new HashMap<>();
+
+			String[] pairs = JSONInput.split("},");
+
+			for (int i = 0; i < pairs.length; i++) {
+
+				if (!pairs[i].endsWith("}")) {
+					pairs[i] += "}";
+				} // "key":{...}
+
+				int braceIndex = pairs[i].indexOf(":{");
+				String inner = pairs[i].substring(braceIndex + 2, pairs[i].length() - 1); // "type":"int","unique":false
+				String Key = pairs[i].substring(1, braceIndex - 1); // id
+
+				if(inner.equals("")){
+					ErrorMessage("Entered Object { " + Key +" } can not be empty !!");
+					return;
+				}
+
+				if (map.containsKey(Key)) {
+					ErrorMessage("The Key { " + Key + " } has been entered more than 1 time !!");
+					return;
+				}
+
+				Map<String, String> InnerMap = new HashMap<>();
+				Boolean isValid = true;
+				String[] innerPairs = inner.split(","); // ["type":"int","unique":false]
+
+				for (int j = 0; j < innerPairs.length; j++) {
+					String[] innerInnerPairs = innerPairs[j].split(":"); // ["type","int"]
+
+					String innerKey = innerInnerPairs[0].substring(1, innerInnerPairs[0].length() - 1);
+
+					if (!innerKey.equals("type") && !innerKey.equals("unique") && !innerKey.equals("required")) {
+						ErrorMessage("Key { " + innerKey + " } is not Valid !!  (type , unique , required)");
+						isValid = false;
+						return;
+					}
+
+					String innerValue = innerInnerPairs[1].startsWith("\"")
+							? innerInnerPairs[1].substring(1, innerInnerPairs[1].length() - 1)
+							: innerInnerPairs[1].substring(0, innerInnerPairs[1].length());
+
+					InnerMap.put(innerKey, innerValue);
+
+				}
+
+				if (isValid)
+					map.put(Key, InnerMap);
+
+			}
+
+			myTypes.put(Type, map);
+			// System.out.println("myTypes =" + myTypes.size() + " " + myTypes);
+
 		}
 
 	}
@@ -151,9 +195,10 @@ public class Test {
 
 		String input = "";
 
-		Map<String, Map<String, List<String>>> myTypes = new HashMap<>();
+		Map<String, Map<String, Map<String, String>>> myTypes = new HashMap<>();
 
 		while (true) {
+			System.out.println(myTypes);
 			input = scanner.nextLine();
 
 			if (input.equals("exit"))
@@ -164,8 +209,3 @@ public class Test {
 
 	}
 }
-
-
-
-
-
