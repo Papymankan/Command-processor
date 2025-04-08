@@ -51,7 +51,30 @@ public class Test {
 		return true;
 	}
 
-	public static void parseCommand(String input, Map<String, Map<String, Map<String, String>>> myTypes) {
+	public static boolean isFlatJSONValid(String json) {
+		json = json.replaceAll("\\s+", "");
+
+		if (!json.startsWith("{") || !json.endsWith("}"))
+			return false;
+
+		json = json.substring(1, json.length() - 1);
+
+		if (json.isEmpty())
+			return true;
+
+		String[] pairs = json.split(",");
+
+		for (String pair : pairs) {
+			if (!pair.matches("^\"[^\"]+\":(\"[^\"]*\"|true|false|\\d+\\.\\d+|\\d+)$")) {
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	public static void parseCommand(String input, Map<String, Map<String, Map<String, String>>> myTypes,
+			Map<String, ArrayList<Map<String, Object>>> myTypesInstances) {
 		String CommandType = "";
 		String Type = "";
 		String Parameter = "";
@@ -78,11 +101,6 @@ public class Test {
 
 			JSONInput = input;
 
-			// System.out.println(
-			// "CommandType = " + CommandType + ".\n" + "Type = " + Type + ".\n" +
-			// "Parameter = " + Parameter
-			// + ".\n" + "JSONInput = " + JSONInput + ".");
-
 			switch (CommandType) {
 				case "create":
 
@@ -100,6 +118,18 @@ public class Test {
 					break;
 				case "insert":
 
+					if (!Parameter.equals("")) {
+						ErrorMessage("Create Command does not accept any parameters !");
+						break;
+					}
+
+					if (JSONInput.equals("")) {
+						ErrorMessage("Create Command accepts a JSON Input !");
+						break;
+					}
+
+					insertType(Type, JSONInput, myTypesInstances);
+
 					break;
 				case "update":
 
@@ -113,7 +143,7 @@ public class Test {
 			}
 
 		} else {
-			System.out.println("ERROR");
+			ErrorMessage("Command pattern is not valid !!");
 		}
 
 	}
@@ -124,10 +154,6 @@ public class Test {
 		if (myTypes.containsKey(Type)) {
 			ErrorMessage("The Type { " + Type + " } already exists");
 		} else {
-			if (myTypes.containsKey(Type)) {
-				ErrorMessage("Already, There is a Type with { " + Type + " } name !!!");
-				return;
-			}
 
 			JSONInput = JSONInput.substring(1, JSONInput.length() - 1).replace(" ", ""); // "key":{...},"key":{...}
 
@@ -145,8 +171,8 @@ public class Test {
 				String inner = pairs[i].substring(braceIndex + 2, pairs[i].length() - 1); // "type":"int","unique":false
 				String Key = pairs[i].substring(1, braceIndex - 1); // id
 
-				if(inner.equals("")){
-					ErrorMessage("Entered Object { " + Key +" } can not be empty !!");
+				if (inner.equals("")) {
+					ErrorMessage("Entered Object { " + Key + " } can not be empty !!");
 					return;
 				}
 
@@ -184,10 +210,42 @@ public class Test {
 			}
 
 			myTypes.put(Type, map);
-			// System.out.println("myTypes =" + myTypes.size() + " " + myTypes);
 
 		}
 
+	}
+
+	public static void insertType(String Type, String JSONInput,
+			Map<String, ArrayList<Map<String, Object>>> myTypesInstances) {
+
+		JSONInput = JSONInput.substring(1, JSONInput.length() - 1).replace(" ", "");
+
+		if (!isFlatJSONValid(JSONInput)) {
+			ErrorMessage("The Json Input is not valid !!");
+			return;
+		}
+
+		Map<String, Object> arrayInnerObjects = new HashMap<>();
+
+		if (!myTypesInstances.containsKey(Type)) {
+			ErrorMessage("There is no { " + Type + " } Type created yet !!");
+			return;
+		}
+
+		String[] pairs = JSONInput.split("},");
+
+		for (int i = 0; i < pairs.length; i++) {
+			if (!pairs[i].endsWith("}")) {
+				pairs[i] += "}";
+			}
+
+			int braceIndex = pairs[i].indexOf(":{");
+			String inner = pairs[i].substring(braceIndex, pairs[i].length());
+			String Key = pairs[i].substring(1, braceIndex - 1);
+
+
+
+		}
 	}
 
 	public static void main(String[] args) {
@@ -196,6 +254,7 @@ public class Test {
 		String input = "";
 
 		Map<String, Map<String, Map<String, String>>> myTypes = new HashMap<>();
+		Map<String, ArrayList<Map<String, Object>>> myTypesInstances = new HashMap<>();
 
 		while (true) {
 			System.out.println(myTypes);
@@ -204,7 +263,7 @@ public class Test {
 			if (input.equals("exit"))
 				break;
 
-			parseCommand(input, myTypes);
+			parseCommand(input, myTypes, myTypesInstances);
 		}
 
 	}
