@@ -77,7 +77,7 @@ public class Test {
 		if (s.matches("^-?\\d+$")) {
 			return "int";
 		} else if (s.matches("^-?\\d+\\.\\d+$")) {
-			return "double";
+			return "dbl";
 		} else {
 			return "none";
 		}
@@ -192,7 +192,6 @@ public class Test {
 				}
 
 				Map<String, Object> InnerMap = new HashMap<>();
-				Boolean isValid = true;
 				String[] innerPairs = inner.split(","); // ["type":"int","unique":false]
 
 				for (int j = 0; j < innerPairs.length; j++) {
@@ -202,16 +201,17 @@ public class Test {
 
 					if (!innerKey.equals("type") && !innerKey.equals("unique") && !innerKey.equals("required")) {
 						ErrorMessage("Key { " + innerKey + " } is not Valid !!  (type , unique , required)");
-						isValid = false;
 						return;
 					}
 
-					// String innerValue = innerInnerPairs[1].startsWith("\"")
-					// ? innerInnerPairs[1].substring(1, innerInnerPairs[1].length() - 1)
-					// : innerInnerPairs[1].substring(0, innerInnerPairs[1].length());
-
 					if (innerInnerPairs[1].startsWith("\"")) {
-						InnerMap.put(innerKey, innerInnerPairs[1].substring(1, innerInnerPairs[1].length() - 1));
+						String str = innerInnerPairs[1].substring(1, innerInnerPairs[1].length() - 1);
+
+						if (str.equals("int") || str.equals("dbl") || str.equals("string") || str.equals("bool")) {
+
+							InnerMap.put(innerKey, str);
+						}
+
 					} else if (innerInnerPairs[1].equals("true")) {
 						InnerMap.put(innerKey, true);
 					} else if (innerInnerPairs[1].equals("false")) {
@@ -223,8 +223,12 @@ public class Test {
 
 				}
 
-				if (isValid)
+				if (innerMap.containsKey("type"))
 					map.put(Key, InnerMap);
+				else {
+					ErrorMessage("{ Type } field is required for each type keys !!");
+					return;
+				}
 
 			}
 
@@ -271,7 +275,7 @@ public class Test {
 					case "int":
 						arrayInnerObjects.put(Key, Integer.parseInt(inner.substring(0, inner.length())));
 						break;
-					case "double":
+					case "dbl":
 						arrayInnerObjects.put(Key, Double.parseDouble(inner.substring(0, inner.length())));
 						break;
 					case "none":
@@ -282,9 +286,57 @@ public class Test {
 		}
 
 		System.out.println("array => " + arrayInnerObjects); // {"name" : "parsa" , "id" : 45}
-		System.out.println(myTypes.get(Type)); // { "name" : {"type " : "string" , "required " : false } , "id" : {"type
-												// " : "int" , "unique" : false} }
 
+		System.out.println(myTypes.get(Type)); // { "name" : {"type " : "string" , "required " : false } , "id" :"type"
+												// : "int" , "unique" : false} , "age" : {"type" : "number" , "required"
+												// : false} }
+
+		Map<String, Map<String, Object>> typeFields = myTypes.get(Type);
+
+		for (Map.Entry<String, Map<String, Object>> fieldEntry : typeFields.entrySet()) {
+			String fieldName = fieldEntry.getKey(); // name
+			Map<String, Object> attributes = fieldEntry.getValue(); // {"type " : "string" , "required " : false }
+
+			if (attributes.containsKey("required") && attributes.get("required") == true) {
+				if (!arrayInnerObjects.containsKey(fieldName)) {
+					ErrorMessage("The { " + fieldName + " } key is required !");
+					return;
+				}
+
+				switch ((String) attributes.get("type")) {
+					case "string":
+						if (!(arrayInnerObjects.get(fieldName) instanceof String)) {
+							ErrorMessage("The type key's value should be String !! ");
+							return;
+						}
+						break;
+
+					case "int":
+						if (!(arrayInnerObjects.get(fieldName) instanceof Integer)) {
+							ErrorMessage("The type key's value should be  Integer !! ");
+							return;
+						}
+						break;
+
+					case "dbl":
+						if (!(arrayInnerObjects.get(fieldName) instanceof Double)) {
+							ErrorMessage("The type key's value should be Double !! ");
+							return;
+						}
+						break;
+
+					default:
+						break;
+				}
+			}
+
+			// if (attributes.get("type").equals("string")) {
+			// ErrorMessage("The type key's value should be " + attributes.get("type") + "
+			// !! ");
+			// return;
+			// }
+
+		}
 	}
 
 	public static void main(String[] args) {
