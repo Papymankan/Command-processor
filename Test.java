@@ -244,6 +244,11 @@ public class Test {
 	public static void insertType(String Type, String JSONInput, Map<String, Map<String, Map<String, Object>>> myTypes,
 			Map<String, ArrayList<Map<String, Object>>> myTypesInstances) {
 
+		if (!myTypes.containsKey(Type)) {
+			ErrorMessage("There is no { " + Type + " } type !!");
+			return;
+		}
+
 		if (!isFlatJSONValid(JSONInput.replace(" ", ""))) {
 			ErrorMessage("The Json Input is not valid !!");
 			return;
@@ -342,6 +347,25 @@ public class Test {
 
 				}
 
+			} else {
+				switch ((String) attributes.get("type")) {
+					case "string":
+						arrayInnerObjects.put(fieldName, "");
+						break;
+					case "int":
+						arrayInnerObjects.put(fieldName, 0);
+						break;
+
+					case "dbl":
+						arrayInnerObjects.put(fieldName, 0.0);
+						break;
+					case "bool":
+						arrayInnerObjects.put(fieldName, false);
+						break;
+
+					default:
+						break;
+				}
 			}
 		}
 
@@ -364,7 +388,7 @@ public class Test {
 			if (input.equals("exit"))
 				break;
 
-			parseCommand(input, myTypes, myTypesInstances);
+			parseCommand(input.trim(), myTypes, myTypesInstances);
 		}
 
 	}
