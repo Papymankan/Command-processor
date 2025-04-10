@@ -124,7 +124,7 @@ public class Test {
 						break;
 					}
 
-					createType(Type, JSONInput, myTypes);
+					createType(Type, JSONInput, myTypes, myTypesInstances);
 					break;
 				case "insert":
 
@@ -159,7 +159,8 @@ public class Test {
 	}
 
 	public static void createType(String Type, String JSONInput,
-			Map<String, Map<String, Map<String, Object>>> myTypes) {
+			Map<String, Map<String, Map<String, Object>>> myTypes,
+			Map<String, ArrayList<Map<String, Object>>> myTypesInstances) {
 
 		if (myTypes.containsKey(Type)) {
 			ErrorMessage("The Type { " + Type + " } already exists");
@@ -223,7 +224,7 @@ public class Test {
 
 				}
 
-				if (innerMap.containsKey("type"))
+				if (InnerMap.containsKey("type"))
 					map.put(Key, InnerMap);
 				else {
 					ErrorMessage("{ Type } field is required for each type keys !!");
@@ -233,6 +234,8 @@ public class Test {
 			}
 
 			myTypes.put(Type, map);
+
+			myTypesInstances.put(Type, new ArrayList<Map<String, Object>>());
 
 		}
 
@@ -249,11 +252,6 @@ public class Test {
 		JSONInput = JSONInput.substring(1, JSONInput.length() - 1).replace(" ", "");
 
 		Map<String, Object> arrayInnerObjects = new HashMap<>();
-
-		// if (!myTypesInstances.containsKey(Type)) {
-		// ErrorMessage("There is no { " + Type + " } Type created yet !!");
-		// return;
-		// }
 
 		String[] pairs = JSONInput.split(",");
 
@@ -285,42 +283,45 @@ public class Test {
 			}
 		}
 
-		System.out.println("array => " + arrayInnerObjects); // {"name" : "parsa" , "id" : 45}
-
-		System.out.println(myTypes.get(Type)); // { "name" : {"type " : "string" , "required " : false } , "id" :"type"
-												// : "int" , "unique" : false} , "age" : {"type" : "number" , "required"
-												// : false} }
-
 		Map<String, Map<String, Object>> typeFields = myTypes.get(Type);
 
 		for (Map.Entry<String, Map<String, Object>> fieldEntry : typeFields.entrySet()) {
-			String fieldName = fieldEntry.getKey(); // name
-			Map<String, Object> attributes = fieldEntry.getValue(); // {"type " : "string" , "required " : false }
+			String fieldName = fieldEntry.getKey();
+			Map<String, Object> attributes = fieldEntry.getValue();
 
-			if (attributes.containsKey("required") && attributes.get("required") == true) {
+			if (attributes.containsKey("required") && attributes.get("required").equals(true)) {
 				if (!arrayInnerObjects.containsKey(fieldName)) {
 					ErrorMessage("The { " + fieldName + " } key is required !");
-					return;
+					return; // here
 				}
 
+			}
+
+			if (arrayInnerObjects.containsKey(fieldName)) {
 				switch ((String) attributes.get("type")) {
 					case "string":
 						if (!(arrayInnerObjects.get(fieldName) instanceof String)) {
-							ErrorMessage("The type key's value should be String !! ");
+							ErrorMessage("The " + fieldName + " value should be String !! ");
 							return;
 						}
 						break;
 
 					case "int":
 						if (!(arrayInnerObjects.get(fieldName) instanceof Integer)) {
-							ErrorMessage("The type key's value should be  Integer !! ");
+							ErrorMessage("The " + fieldName + " value should be  Integer !! ");
 							return;
 						}
 						break;
 
 					case "dbl":
 						if (!(arrayInnerObjects.get(fieldName) instanceof Double)) {
-							ErrorMessage("The type key's value should be Double !! ");
+							ErrorMessage("The " + fieldName + " value should be Double !! ");
+							return;
+						}
+						break;
+					case "bool":
+						if (!(arrayInnerObjects.get(fieldName) instanceof Boolean)) {
+							ErrorMessage("The type key's value should be Boolean !! ");
 							return;
 						}
 						break;
@@ -328,15 +329,23 @@ public class Test {
 					default:
 						break;
 				}
+
+				if (attributes.containsKey("unique") && attributes.get("unique").equals(true)) {
+					for (int i = 0; i < myTypesInstances.get(Type).size(); i++) {
+						if (myTypesInstances.get(Type).get(i).containsKey(fieldName)
+								&& arrayInnerObjects.containsKey(fieldName) && myTypesInstances.get(Type)
+										.get(i).get(fieldName).equals(arrayInnerObjects.get(fieldName))) {
+							ErrorMessage("The { " + fieldName + " } value must be unique !!");
+							return;
+						}
+					}
+
+				}
+
 			}
-
-			// if (attributes.get("type").equals("string")) {
-			// ErrorMessage("The type key's value should be " + attributes.get("type") + "
-			// !! ");
-			// return;
-			// }
-
 		}
+
+		myTypesInstances.get(Type).add(arrayInnerObjects);
 	}
 
 	public static void main(String[] args) {
@@ -348,7 +357,8 @@ public class Test {
 		Map<String, ArrayList<Map<String, Object>>> myTypesInstances = new HashMap<>();
 
 		while (true) {
-			System.out.println(myTypes);
+			System.out.println("Type => " + myTypes);
+			System.out.println("Instances => " + myTypesInstances);
 			input = scanner.nextLine();
 
 			if (input.equals("exit"))
