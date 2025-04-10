@@ -73,7 +73,17 @@ public class Test {
 		return true;
 	}
 
-	public static void parseCommand(String input, Map<String, Map<String, Map<String, String>>> myTypes,
+	public static String checkNumberType(String s) {
+		if (s.matches("^-?\\d+$")) {
+			return "int";
+		} else if (s.matches("^-?\\d+\\.\\d+$")) {
+			return "double";
+		} else {
+			return "none";
+		}
+	}
+
+	public static void parseCommand(String input, Map<String, Map<String, Map<String, Object>>> myTypes,
 			Map<String, ArrayList<Map<String, Object>>> myTypesInstances) {
 		String CommandType = "";
 		String Type = "";
@@ -128,7 +138,7 @@ public class Test {
 						break;
 					}
 
-					insertType(Type, JSONInput, myTypesInstances);
+					insertType(Type, JSONInput, myTypes, myTypesInstances);
 
 					break;
 				case "update":
@@ -149,7 +159,7 @@ public class Test {
 	}
 
 	public static void createType(String Type, String JSONInput,
-			Map<String, Map<String, Map<String, String>>> myTypes) {
+			Map<String, Map<String, Map<String, Object>>> myTypes) {
 
 		if (myTypes.containsKey(Type)) {
 			ErrorMessage("The Type { " + Type + " } already exists");
@@ -157,7 +167,7 @@ public class Test {
 
 			JSONInput = JSONInput.substring(1, JSONInput.length() - 1).replace(" ", ""); // "key":{...},"key":{...}
 
-			Map<String, Map<String, String>> map = new HashMap<>();
+			Map<String, Map<String, Object>> map = new HashMap<>();
 
 			String[] pairs = JSONInput.split("},");
 
@@ -181,7 +191,7 @@ public class Test {
 					return;
 				}
 
-				Map<String, String> InnerMap = new HashMap<>();
+				Map<String, Object> InnerMap = new HashMap<>();
 				Boolean isValid = true;
 				String[] innerPairs = inner.split(","); // ["type":"int","unique":false]
 
@@ -196,11 +206,20 @@ public class Test {
 						return;
 					}
 
-					String innerValue = innerInnerPairs[1].startsWith("\"")
-							? innerInnerPairs[1].substring(1, innerInnerPairs[1].length() - 1)
-							: innerInnerPairs[1].substring(0, innerInnerPairs[1].length());
+					// String innerValue = innerInnerPairs[1].startsWith("\"")
+					// ? innerInnerPairs[1].substring(1, innerInnerPairs[1].length() - 1)
+					// : innerInnerPairs[1].substring(0, innerInnerPairs[1].length());
 
-					InnerMap.put(innerKey, innerValue);
+					if (innerInnerPairs[1].startsWith("\"")) {
+						InnerMap.put(innerKey, innerInnerPairs[1].substring(1, innerInnerPairs[1].length() - 1));
+					} else if (innerInnerPairs[1].equals("true")) {
+						InnerMap.put(innerKey, true);
+					} else if (innerInnerPairs[1].equals("false")) {
+						InnerMap.put(innerKey, false);
+					} else {
+						ErrorMessage("Something went wrong !!!");
+						return;
+					}
 
 				}
 
@@ -215,37 +234,57 @@ public class Test {
 
 	}
 
-	public static void insertType(String Type, String JSONInput,
+	public static void insertType(String Type, String JSONInput, Map<String, Map<String, Map<String, Object>>> myTypes,
 			Map<String, ArrayList<Map<String, Object>>> myTypesInstances) {
 
-		JSONInput = JSONInput.substring(1, JSONInput.length() - 1).replace(" ", "");
-
-		if (!isFlatJSONValid(JSONInput)) {
+		if (!isFlatJSONValid(JSONInput.replace(" ", ""))) {
 			ErrorMessage("The Json Input is not valid !!");
 			return;
 		}
 
+		JSONInput = JSONInput.substring(1, JSONInput.length() - 1).replace(" ", "");
+
 		Map<String, Object> arrayInnerObjects = new HashMap<>();
 
-		if (!myTypesInstances.containsKey(Type)) {
-			ErrorMessage("There is no { " + Type + " } Type created yet !!");
-			return;
-		}
+		// if (!myTypesInstances.containsKey(Type)) {
+		// ErrorMessage("There is no { " + Type + " } Type created yet !!");
+		// return;
+		// }
 
-		String[] pairs = JSONInput.split("},");
+		String[] pairs = JSONInput.split(",");
 
 		for (int i = 0; i < pairs.length; i++) {
-			if (!pairs[i].endsWith("}")) {
-				pairs[i] += "}";
-			}
 
-			int braceIndex = pairs[i].indexOf(":{");
-			String inner = pairs[i].substring(braceIndex, pairs[i].length());
+			int braceIndex = pairs[i].indexOf(":");
+			String inner = pairs[i].substring(braceIndex + 1, pairs[i].length());
 			String Key = pairs[i].substring(1, braceIndex - 1);
 
+			if (inner.startsWith("\"")) {
+				arrayInnerObjects.put(Key, inner.substring(1, inner.length() - 1));
+			} else if (inner.equals("true")) {
+				arrayInnerObjects.put(Key, true);
+			} else if (inner.equals("false")) {
+				arrayInnerObjects.put(Key, false);
 
-
+			} else {
+				switch (checkNumberType(inner.substring(0, inner.length()))) {
+					case "int":
+						arrayInnerObjects.put(Key, Integer.parseInt(inner.substring(0, inner.length())));
+						break;
+					case "double":
+						arrayInnerObjects.put(Key, Double.parseDouble(inner.substring(0, inner.length())));
+						break;
+					case "none":
+						ErrorMessage("Something went wrong !!");
+						return;
+				}
+			}
 		}
+
+		System.out.println("array => " + arrayInnerObjects); // {"name" : "parsa" , "id" : 45}
+		System.out.println(myTypes.get(Type)); // { "name" : {"type " : "string" , "required " : false } , "id" : {"type
+												// " : "int" , "unique" : false} }
+
 	}
 
 	public static void main(String[] args) {
@@ -253,7 +292,7 @@ public class Test {
 
 		String input = "";
 
-		Map<String, Map<String, Map<String, String>>> myTypes = new HashMap<>();
+		Map<String, Map<String, Map<String, Object>>> myTypes = new HashMap<>();
 		Map<String, ArrayList<Map<String, Object>>> myTypesInstances = new HashMap<>();
 
 		while (true) {
