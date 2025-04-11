@@ -1,6 +1,5 @@
 package ir.ac.kntu;
 
-import java.security.Key;
 import java.util.*;
 
 public class Test {
@@ -77,6 +76,18 @@ public class Test {
 		return input.matches("^[a-zA-Z0-9_]+$");
 	}
 
+	public static boolean isValidParameter(String input) {
+		input = input.trim().replaceAll("\\s+", "");
+
+		String identifier = "[a-zA-Z][a-zA-Z0-9_]*";
+		String operator = "=|<|>";
+		String value = "(\"[^\"]*\"|\\d+(\\.\\d+)?|true|false)";
+
+		String fullPattern = "^" + identifier + "(" + operator + ")" + value + "$";
+
+		return input.matches(fullPattern);
+	}
+
 	public static String checkNumberType(String s) {
 		if (s.matches("^-?\\d+$")) {
 			return "int";
@@ -146,7 +157,16 @@ public class Test {
 
 					break;
 				case "update":
+					if (JSONInput.equals("")) {
+						ErrorMessage("Create Command accepts a JSON Input !");
+						break;
+					}
+					if (isValidParameter(Parameter.replace(" ", ""))) {
+						ErrorMessage("Parameter is not valid !");
+						break;
+					}
 
+					updateInstance(Type, JSONInput, myTypes, myTypesInstances, Parameter.replace(" ", ""));
 					break;
 				case "delete":
 
@@ -400,7 +420,16 @@ public class Test {
 		myTypesInstances.get(Type).add(arrayInnerObjects);
 	}
 
-	public static void main(String[] args) {
+	public static void updateInstance(String Type, String JSONInput,
+			Map<String, Map<String, Map<String, Object>>> myTypes,
+			Map<String, ArrayList<Map<String, Object>>> myTypesInstances, String Parameter) {
+				
+				// String[] pairs;
+
+	}
+
+	
+	public static void main() {
 		Scanner scanner = new Scanner(System.in);
 
 		String input = "";
@@ -420,4 +449,6 @@ public class Test {
 		}
 
 	}
+
+
 }
