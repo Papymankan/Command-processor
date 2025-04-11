@@ -85,7 +85,54 @@ public class Test {
 
 		String fullPattern = "^" + identifier + "(" + operator + ")" + value + "$";
 
+		System.out.println(input);
 		return input.matches(fullPattern);
+	}
+
+	public static Map<String, Object> parseFlatJsonToHash(String JSONInput) {
+		JSONInput = JSONInput.substring(1, JSONInput.length() - 1).replace(" ", "");
+
+		Map<String, Object> arrayInnerObjects = new HashMap<>();
+		Map<String, Object> finalObject = new HashMap<>();
+
+		String[] pairs = JSONInput.split(",");
+
+		for (int i = 0; i < pairs.length; i++) {
+
+			int braceIndex = pairs[i].indexOf(":");
+			String inner = pairs[i].substring(braceIndex + 1, pairs[i].length());
+			String Key = pairs[i].substring(1, braceIndex - 1);
+
+			if (!myTypes.get(Type).containsKey(Key)) {
+				ErrorMessage("The key { " + Key + " } does not exist in { " + Type + " } !!");
+				return finalObject;
+			}
+
+			if (inner.startsWith("\"")) {
+				arrayInnerObjects.put(Key, inner.substring(1, inner.length() - 1));
+			} else if (inner.equals("true")) {
+				arrayInnerObjects.put(Key, true);
+			} else if (inner.equals("false")) {
+				arrayInnerObjects.put(Key, false);
+
+			} else {
+				switch (checkNumberType(inner.substring(0, inner.length()))) {
+					case "int":
+						arrayInnerObjects.put(Key, Integer.parseInt(inner.substring(0, inner.length())));
+						break;
+					case "dbl":
+						arrayInnerObjects.put(Key, Double.parseDouble(inner.substring(0, inner.length())));
+						break;
+					case "none":
+						ErrorMessage("Something went wrong !!");
+						return finalObject;
+				}
+			}
+		}
+
+		finalObject = arrayInnerObjects;
+
+		return finalObject;
 	}
 
 	public static String checkNumberType(String s) {
@@ -161,7 +208,8 @@ public class Test {
 						ErrorMessage("Create Command accepts a JSON Input !");
 						break;
 					}
-					if (isValidParameter(Parameter.replace(" ", ""))) {
+					if (!Parameter.equals("") && !isValidParameter(
+							Parameter.trim().substring(1, Parameter.length() - 1).replace(" ", ""))) {
 						ErrorMessage("Parameter is not valid !");
 						break;
 					}
@@ -423,13 +471,67 @@ public class Test {
 	public static void updateInstance(String Type, String JSONInput,
 			Map<String, Map<String, Map<String, Object>>> myTypes,
 			Map<String, ArrayList<Map<String, Object>>> myTypesInstances, String Parameter) {
-				
-				// String[] pairs;
+
+		String param = "";
+		param = !Parameter.equals("") ? Parameter.substring(1, Parameter.length() - 1) : "";
+
+		if (!myTypes.containsKey(Type)) {
+			ErrorMessage("There is no { " + Type + " } type !!");
+			return;
+		}
+
+		if (!isFlatJSONValid(JSONInput.replace(" ", ""))) {
+			ErrorMessage("The Json Input is not valid !!");
+			return;
+		}
+
+		Map<String, Object> arrayInnerObjects = parseFlatJsonToHash(JSONInput);
+
+		if (arrayInnerObjects.size() == 0) {
+			return;
+		}
+
+		String[] paramPairs;
+		String identifire;
+
+		if (!param.equals("")) {
+
+			if (param.contains("=")) {
+				paramPairs = param.split("=");
+				identifire = "=";
+			} else if (param.contains(">")) {
+				paramPairs = param.split(">");
+				identifire = ">";
+			} else if (param.contains("<")) {
+				paramPairs = param.split("<");
+				identifire = "<";
+			} else {
+				ErrorMessage("SomeThing went wrong !!");
+				return;
+			}
+
+			if (!myTypes.get(Type).containsKey(paramPairs[0])) {
+				ErrorMessage("There is no { " + paramPairs[0] + " } in { " + Type + " } Type !!");
+				return;
+			}
+		}
+
+		for (int i = 0; i < myTypesInstances.get(Type).size(); i++) {
+			Map<String, Object> object = new HashMap<>();
+			// object = myTypesInstances.get(Type).get(i);
+			if (!param.equals("")) {
+
+			} else {
+				for (int j = 0; j < arrayInnerObjects.size(); j++) {
+					
+				}
+				myTypesInstances.get(Type).get(i).put(identifire, object)
+			}
+		}
 
 	}
 
-	
-	public static void main() {
+	public static void main(String[] args) {
 		Scanner scanner = new Scanner(System.in);
 
 		String input = "";
@@ -449,6 +551,5 @@ public class Test {
 		}
 
 	}
-
 
 }
