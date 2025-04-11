@@ -73,6 +73,10 @@ public class Test {
 		return true;
 	}
 
+	public static boolean isAlphaNumUnderscore(String input) {
+		return input.matches("^[a-zA-Z0-9_]+$");
+	}
+
 	public static String checkNumberType(String s) {
 		if (s.matches("^-?\\d+$")) {
 			return "int";
@@ -162,6 +166,11 @@ public class Test {
 			Map<String, Map<String, Map<String, Object>>> myTypes,
 			Map<String, ArrayList<Map<String, Object>>> myTypesInstances) {
 
+		if (!isAlphaNumUnderscore(Type)) {
+			ErrorMessage("{ " + Type + " } Type name is not valid");
+			return;
+		}
+
 		if (myTypes.containsKey(Type)) {
 			ErrorMessage("The Type { " + Type + " } already exists");
 		} else {
@@ -181,6 +190,11 @@ public class Test {
 				int braceIndex = pairs[i].indexOf(":{");
 				String inner = pairs[i].substring(braceIndex + 2, pairs[i].length() - 1); // "type":"int","unique":false
 				String Key = pairs[i].substring(1, braceIndex - 1); // id
+
+				if (!isAlphaNumUnderscore(Key)) {
+					ErrorMessage("{ " + Key + " } Key name is not valid");
+					return;
+				}
 
 				if (inner.equals("")) {
 					ErrorMessage("Entered Object { " + Key + " } can not be empty !!");
@@ -211,6 +225,9 @@ public class Test {
 						if (str.equals("int") || str.equals("dbl") || str.equals("string") || str.equals("bool")) {
 
 							InnerMap.put(innerKey, str);
+						} else {
+							ErrorMessage("{ " + str + " } is not valid !!");
+							return;
 						}
 
 					} else if (innerInnerPairs[1].equals("true")) {
@@ -218,7 +235,8 @@ public class Test {
 					} else if (innerInnerPairs[1].equals("false")) {
 						InnerMap.put(innerKey, false);
 					} else {
-						ErrorMessage("Something went wrong !!!");
+						ErrorMessage("Fields must be (int , dbl , sting , bool , true , false), but your input is { "
+								+ innerInnerPairs[1] + "} !!!");
 						return;
 					}
 
@@ -265,6 +283,16 @@ public class Test {
 			int braceIndex = pairs[i].indexOf(":");
 			String inner = pairs[i].substring(braceIndex + 1, pairs[i].length());
 			String Key = pairs[i].substring(1, braceIndex - 1);
+
+			if (!myTypes.get(Type).containsKey(Key)) {
+				ErrorMessage("The key { " + Key + " } does not exist in { " + Type + " } !!");
+				return;
+			}
+
+			if (!isAlphaNumUnderscore(Key)) {
+				ErrorMessage("{ " + Key + " } Key name is not valid");
+				return;
+			}
 
 			if (inner.startsWith("\"")) {
 				arrayInnerObjects.put(Key, inner.substring(1, inner.length() - 1));
