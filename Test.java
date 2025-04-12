@@ -76,20 +76,59 @@ public class Test {
 		return input.matches("^[a-zA-Z0-9_]+$");
 	}
 
-	public static boolean isValidParameter(String input) {
+	public static Object[] isValidParameter(String input) {
 		input = input.trim().replaceAll("\\s+", "");
 
-		String identifier = "[a-zA-Z][a-zA-Z0-9_]*";
-		String operator = "=|<|>";
-		String value = "(\"[^\"]*\"|\\d+(\\.\\d+)?|true|false)";
+		Object[] result = new Object[2];
+		result[0] = false;
+		result[1] = "none";
 
-		String fullPattern = "^" + identifier + "(" + operator + ")" + value + "$";
+		String regex = "^([a-zA-Z_][a-zA-Z0-9_]*)\\s*(=|<|>)\\s*(.+)$";
+		if (!input.matches(regex))
+			return result;
 
-		System.out.println(input);
-		return input.matches(fullPattern);
+		String[] parts = input.split("(=|<|>)");
+		if (parts.length != 2)
+			return result;
+
+		String operator = input.replaceAll("^[^=<>]*(=|<|>).*$", "$1");
+		String value = parts[1].trim();
+
+		switch (operator) {
+			case "=":
+				if (value.matches("^\"[^\"]*\"$")) {
+					result[0] = true;
+					result[1] = "string";
+				} else if (value.equals("true") || value.equals("false")) {
+					result[0] = true;
+					result[1] = "boolean";
+				} else if (value.matches("^-?\\d+$")) {
+					result[0] = true;
+					result[1] = "int";
+				} else if (value.matches("^-?\\d+\\.\\d+$")) {
+					result[0] = true;
+					result[1] = "dbl";
+				}
+				break;
+
+			case "<":
+			case ">":
+				if (value.matches("^-?\\d+$")) {
+					result[0] = true;
+					result[1] = "int";
+				} else if (value.matches("^-?\\d+\\.\\d+$")) {
+					result[0] = true;
+					result[1] = "dbl";
+				}
+				break;
+		}
+
+		return result;
+
 	}
 
-	public static Map<String, Object> parseFlatJsonToHash(String JSONInput) {
+	public static Map<String, Object> parseFlatJsonToHash(String JSONInput, String Type,
+			Map<String, Map<String, Map<String, Object>>> myTypes) {
 		JSONInput = JSONInput.substring(1, JSONInput.length() - 1).replace(" ", "");
 
 		Map<String, Object> arrayInnerObjects = new HashMap<>();
@@ -143,6 +182,26 @@ public class Test {
 		} else {
 			return "none";
 		}
+	}
+
+	public static Boolean passesParameter(String[] paramPairs, Map<String, Object> object, Object paramType) {
+		if (paramPairs.length == 0) {
+			return false;
+		}
+
+		switch ((String) paramType) {
+			case "string":
+				return object.get(paramPairs[0]).equals(paramPairs[1].substring(1, paramPairs[1].length() - 1));
+			case "int":
+				return object.get(paramPairs[0]).equals(Integer.parseInt(paramPairs[1]));
+			case "dbl":
+				return object.get(paramPairs[0]).equals(Double.parseDouble(paramPairs[1]));
+			case "boolean":
+				return object.get(paramPairs[0]).equals(Boolean.parseBoolean(paramPairs[1]));
+			default:
+				return false;
+		}
+
 	}
 
 	public static void parseCommand(String input, Map<String, Map<String, Map<String, Object>>> myTypes,
@@ -208,11 +267,7 @@ public class Test {
 						ErrorMessage("Create Command accepts a JSON Input !");
 						break;
 					}
-					if (!Parameter.equals("") && !isValidParameter(
-							Parameter.trim().substring(1, Parameter.length() - 1).replace(" ", ""))) {
-						ErrorMessage("Parameter is not valid !");
-						break;
-					}
+
 
 					updateInstance(Type, JSONInput, myTypes, myTypesInstances, Parameter.replace(" ", ""));
 					break;
@@ -340,48 +395,10 @@ public class Test {
 			return;
 		}
 
-		JSONInput = JSONInput.substring(1, JSONInput.length() - 1).replace(" ", "");
+		Map<String, Object> arrayInnerObjects = parseFlatJsonToHash(JSONInput, Type, myTypes);
 
-		Map<String, Object> arrayInnerObjects = new HashMap<>();
-
-		String[] pairs = JSONInput.split(",");
-
-		for (int i = 0; i < pairs.length; i++) {
-
-			int braceIndex = pairs[i].indexOf(":");
-			String inner = pairs[i].substring(braceIndex + 1, pairs[i].length());
-			String Key = pairs[i].substring(1, braceIndex - 1);
-
-			if (!myTypes.get(Type).containsKey(Key)) {
-				ErrorMessage("The key { " + Key + " } does not exist in { " + Type + " } !!");
-				return;
-			}
-
-			if (!isAlphaNumUnderscore(Key)) {
-				ErrorMessage("{ " + Key + " } Key name is not valid");
-				return;
-			}
-
-			if (inner.startsWith("\"")) {
-				arrayInnerObjects.put(Key, inner.substring(1, inner.length() - 1));
-			} else if (inner.equals("true")) {
-				arrayInnerObjects.put(Key, true);
-			} else if (inner.equals("false")) {
-				arrayInnerObjects.put(Key, false);
-
-			} else {
-				switch (checkNumberType(inner.substring(0, inner.length()))) {
-					case "int":
-						arrayInnerObjects.put(Key, Integer.parseInt(inner.substring(0, inner.length())));
-						break;
-					case "dbl":
-						arrayInnerObjects.put(Key, Double.parseDouble(inner.substring(0, inner.length())));
-						break;
-					case "none":
-						ErrorMessage("Something went wrong !!");
-						return;
-				}
-			}
+		if (arrayInnerObjects.size() == 0) {
+			return;
 		}
 
 		Map<String, Map<String, Object>> typeFields = myTypes.get(Type);
@@ -395,7 +412,6 @@ public class Test {
 					ErrorMessage("The { " + fieldName + " } key is required !");
 					return; // here
 				}
-
 			}
 
 			if (arrayInnerObjects.containsKey(fieldName)) {
@@ -472,6 +488,13 @@ public class Test {
 			Map<String, Map<String, Map<String, Object>>> myTypes,
 			Map<String, ArrayList<Map<String, Object>>> myTypesInstances, String Parameter) {
 
+		if (myTypesInstances.get(Type).size() == 0) {
+			ErrorMessage("There is no instance with { " + Type + " } type !!");
+			return;
+		}
+
+		Object paramStatus = isValidParameter(JSONInput.replace(" ", ""));
+
 		String param = "";
 		param = !Parameter.equals("") ? Parameter.substring(1, Parameter.length() - 1) : "";
 
@@ -485,13 +508,13 @@ public class Test {
 			return;
 		}
 
-		Map<String, Object> arrayInnerObjects = parseFlatJsonToHash(JSONInput);
+		Map<String, Object> arrayInnerObjects = parseFlatJsonToHash(JSONInput, Type, myTypes);
 
 		if (arrayInnerObjects.size() == 0) {
 			return;
 		}
 
-		String[] paramPairs;
+		String[] paramPairs = {};
 		String identifire;
 
 		if (!param.equals("")) {
@@ -514,18 +537,68 @@ public class Test {
 				ErrorMessage("There is no { " + paramPairs[0] + " } in { " + Type + " } Type !!");
 				return;
 			}
+
+		}
+
+		for (Map.Entry<String, Object> fieldEntry : arrayInnerObjects.entrySet()) {
+			String fieldName = fieldEntry.getKey();
+			Object attributes = fieldEntry.getValue();
+
+			if (!myTypes.get(Type).containsKey(fieldName)) {
+				ErrorMessage("There is no { " + fieldName + " } key in { " + Type + " } type !!");
+				return;
+			}
+
+			if (!myTypesInstances.get(Type).get(0).get(fieldName).getClass().equals(attributes.getClass())) {
+				ErrorMessage("The { " + fieldName + " } key does not have a valid type !!");
+				return;
+			}
+
+			if (String.class.equals(attributes.getClass()) && attributes.equals("")
+					&& myTypes.get(Type).get(fieldName).containsKey("required")
+					&& myTypes.get(Type).get(fieldName).get("required").equals(true)) {
+				ErrorMessage("The value of { " + fieldName + " } can not be empty !!");
+				return;
+			}
+
+			if (myTypes.get(Type).get(fieldName).containsKey("unique")
+					&& myTypes.get(Type).get(fieldName).get("unique").equals(true)) {
+
+				if (!param.equals("")) {
+
+					int count = 0;
+					for (int i = 0; i < myTypesInstances.get(Type).size(); i++) {
+						if (passesParameter(paramPairs, myTypesInstances.get(Type).get(i), paramType)) {
+							count++;
+						}
+					}
+
+					if (count > 1) {
+						ErrorMessage("There is more than one instance with unique { " + fieldName
+								+ " } field that follow the parameter !!");
+						return;
+					}
+				} else {
+					if (myTypesInstances.get(Type).size() > 1) {
+						ErrorMessage("There is more than one instancewith unique { " + fieldName
+								+ " }, so you can not update them all with the same value !!");
+						return;
+					}
+				}
+
+			}
 		}
 
 		for (int i = 0; i < myTypesInstances.get(Type).size(); i++) {
-			Map<String, Object> object = new HashMap<>();
-			// object = myTypesInstances.get(Type).get(i);
 			if (!param.equals("")) {
 
 			} else {
-				for (int j = 0; j < arrayInnerObjects.size(); j++) {
-					
+				for (Map.Entry<String, Object> fieldEntry : arrayInnerObjects.entrySet()) {
+					String fieldName = fieldEntry.getKey();
+					Object attributes = fieldEntry.getValue();
+
+					myTypesInstances.get(Type).get(i).put(fieldName, attributes);
 				}
-				myTypesInstances.get(Type).get(i).put(identifire, object)
 			}
 		}
 
