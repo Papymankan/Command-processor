@@ -245,9 +245,15 @@ public class Test {
 				input = "";
 			}
 
-			if (input.length() > 0 && input.charAt(0) == '(') {
-				Parameter = input.substring(0, input.indexOf(")") + 1);
-				input = input.substring(input.indexOf(")") + 2);
+			if (input.length() > 0) {
+				if (input.startsWith("(")) {
+					Parameter = input.substring(0, input.indexOf(")") + 1);
+
+					if (input.indexOf(")") + 1 < input.length())
+						input = input.substring(input.indexOf(")") + 2);
+					else
+						input = "";
+				}
 			}
 
 			JSONInput = input;
@@ -294,7 +300,12 @@ public class Test {
 
 					break;
 				case "search":
+					if (!JSONInput.equals("")) {
+						ErrorMessage("There is no need for json, for searching !!!");
+						return;
+					}
 
+					searchInstances(Type, myTypes, myTypesInstances, Parameter.replace(" ", ""));
 					break;
 			}
 
@@ -508,9 +519,8 @@ public class Test {
 			Map<String, ArrayList<Map<String, Object>>> myTypesInstances, String Parameter) {
 
 		if (!myTypes.containsKey(Type)) {
-			ErrorMessage("There is no Type with { " + Type + " } name !!");
+			ErrorMessage("There is no { " + Type + " } type !!");
 			return;
-
 		}
 
 		if (myTypesInstances.get(Type).size() == 0) {
@@ -563,6 +573,7 @@ public class Test {
 
 		if (paramStatus[0].equals(false) && !param.equals("")) {
 			ErrorMessage("The Parameter is not valid !!!");
+			return;
 		}
 
 		for (Map.Entry<String, Object> fieldEntry : arrayInnerObjects.entrySet()) {
@@ -633,6 +644,82 @@ public class Test {
 					myTypesInstances.get(Type).get(i).put(fieldName, attributes);
 				}
 			}
+		}
+
+	}
+
+	public static void searchInstances(String Type,
+			Map<String, Map<String, Map<String, Object>>> myTypes,
+			Map<String, ArrayList<Map<String, Object>>> myTypesInstances, String Parameter) {
+
+		if (!myTypes.containsKey(Type)) {
+			ErrorMessage("There is no { " + Type + " } type !!");
+			return;
+		}
+
+		if (myTypesInstances.get(Type).size() == 0) {
+			ErrorMessage("There is no instance with { " + Type + " } type !!");
+			return;
+		}
+
+		String param = "";
+		param = !Parameter.equals("") ? Parameter.substring(1, Parameter.length() - 1) : "";
+
+		Object[] paramStatus = isValidParameter(param);
+
+		String[] paramPairs = {};
+
+		if (paramStatus[0].equals(true)) {
+
+			if (param.contains("=")) {
+				paramPairs = param.split("(?<=[<>=])|(?=[<>=])");
+			} else if (param.contains(">")) {
+				paramPairs = param.split("(?<=[<>=])|(?=[<>=])");
+			} else if (param.contains("<")) {
+				paramPairs = param.split("(?<=[<>=])|(?=[<>=])");
+			} else {
+				ErrorMessage("SomeThing went wrong !!");
+				return;
+			}
+
+			if (!myTypes.get(Type).containsKey(paramPairs[0])) {
+				ErrorMessage("There is no { " + paramPairs[0] + " } in { " + Type + " } Type !!");
+				return;
+			}
+
+		}
+
+		if (paramStatus[0].equals(false) && !param.equals("")) {
+			ErrorMessage("The Parameter is not valid !!!");
+			return;
+		}
+
+		int count = 0;
+		for (int i = 0; i < myTypesInstances.get(Type).size(); i++) {
+			if (!param.equals("")) {
+
+				if (passesParameter(paramPairs, myTypesInstances.get(Type).get(i), paramStatus[1])) {
+					count++;
+				}
+			} else
+				count++;
+		}
+
+		if (count > 0) {
+
+			for (int i = 0; i < myTypesInstances.get(Type).size(); i++) {
+				if (!param.equals("")) {
+
+					if (passesParameter(paramPairs, myTypesInstances.get(Type).get(i), paramStatus[1])) {
+						System.out.println(myTypesInstances.get(Type).get(i));
+					}
+				} else
+					System.out.println(myTypesInstances.get(Type).get(i));
+			}
+		}else
+		{
+			ErrorMessage("There is no record based on your parameter !!");
+			return;
 		}
 
 	}
