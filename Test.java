@@ -59,7 +59,7 @@ public class Test {
 		json = json.substring(1, json.length() - 1);
 
 		if (json.isEmpty())
-			return true;
+			return false;
 
 		String[] pairs = json.split(",");
 
@@ -82,6 +82,10 @@ public class Test {
 		Object[] result = new Object[2];
 		result[0] = false;
 		result[1] = "none";
+
+		if (input.equals("")) {
+			return result;
+		}
 
 		String regex = "^([a-zA-Z_][a-zA-Z0-9_]*)\\s*(=|<|>)\\s*(.+)$";
 		if (!input.matches(regex))
@@ -191,13 +195,29 @@ public class Test {
 
 		switch ((String) paramType) {
 			case "string":
-				return object.get(paramPairs[0]).equals(paramPairs[1].substring(1, paramPairs[1].length() - 1));
+				return object.get(paramPairs[0]).equals(paramPairs[2].substring(1, paramPairs[2].length() - 1));
 			case "int":
-				return object.get(paramPairs[0]).equals(Integer.parseInt(paramPairs[1]));
+				switch (paramPairs[1]) {
+					case "=":
+						return object.get(paramPairs[0]).equals(Integer.parseInt(paramPairs[2]));
+					case ">":
+						return (Integer) object.get(paramPairs[0]) > Integer.parseInt(paramPairs[2]);
+					case "<":
+						return (Integer) object.get(paramPairs[0]) < Integer.parseInt(paramPairs[2]);
+
+				}
 			case "dbl":
-				return object.get(paramPairs[0]).equals(Double.parseDouble(paramPairs[1]));
+				switch (paramPairs[1]) {
+					case "=":
+						return object.get(paramPairs[0]).equals(Double.parseDouble(paramPairs[2]));
+					case ">":
+						return (Integer) object.get(paramPairs[0]) > Double.parseDouble(paramPairs[2]);
+					case "<":
+						return (Integer) object.get(paramPairs[0]) < Double.parseDouble(paramPairs[2]);
+
+				}
 			case "boolean":
-				return object.get(paramPairs[0]).equals(Boolean.parseBoolean(paramPairs[1]));
+				return object.get(paramPairs[0]).equals(Boolean.parseBoolean(paramPairs[2]));
 			default:
 				return false;
 		}
@@ -267,7 +287,6 @@ public class Test {
 						ErrorMessage("Create Command accepts a JSON Input !");
 						break;
 					}
-
 
 					updateInstance(Type, JSONInput, myTypes, myTypesInstances, Parameter.replace(" ", ""));
 					break;
@@ -488,15 +507,21 @@ public class Test {
 			Map<String, Map<String, Map<String, Object>>> myTypes,
 			Map<String, ArrayList<Map<String, Object>>> myTypesInstances, String Parameter) {
 
+		if (!myTypes.containsKey(Type)) {
+			ErrorMessage("There is no Type with { " + Type + " } name !!");
+			return;
+
+		}
+
 		if (myTypesInstances.get(Type).size() == 0) {
 			ErrorMessage("There is no instance with { " + Type + " } type !!");
 			return;
 		}
 
-		Object paramStatus = isValidParameter(JSONInput.replace(" ", ""));
-
 		String param = "";
 		param = !Parameter.equals("") ? Parameter.substring(1, Parameter.length() - 1) : "";
+
+		Object[] paramStatus = isValidParameter(param);
 
 		if (!myTypes.containsKey(Type)) {
 			ErrorMessage("There is no { " + Type + " } type !!");
@@ -515,19 +540,15 @@ public class Test {
 		}
 
 		String[] paramPairs = {};
-		String identifire;
 
-		if (!param.equals("")) {
+		if (paramStatus[0].equals(true)) {
 
 			if (param.contains("=")) {
-				paramPairs = param.split("=");
-				identifire = "=";
+				paramPairs = param.split("(?<=[<>=])|(?=[<>=])");
 			} else if (param.contains(">")) {
-				paramPairs = param.split(">");
-				identifire = ">";
+				paramPairs = param.split("(?<=[<>=])|(?=[<>=])");
 			} else if (param.contains("<")) {
-				paramPairs = param.split("<");
-				identifire = "<";
+				paramPairs = param.split("(?<=[<>=])|(?=[<>=])");
 			} else {
 				ErrorMessage("SomeThing went wrong !!");
 				return;
@@ -538,6 +559,10 @@ public class Test {
 				return;
 			}
 
+		}
+
+		if (paramStatus[0].equals(false) && !param.equals("")) {
+			ErrorMessage("The Parameter is not valid !!!");
 		}
 
 		for (Map.Entry<String, Object> fieldEntry : arrayInnerObjects.entrySet()) {
@@ -568,7 +593,7 @@ public class Test {
 
 					int count = 0;
 					for (int i = 0; i < myTypesInstances.get(Type).size(); i++) {
-						if (passesParameter(paramPairs, myTypesInstances.get(Type).get(i), paramType)) {
+						if (passesParameter(paramPairs, myTypesInstances.get(Type).get(i), paramStatus[1])) {
 							count++;
 						}
 					}
@@ -591,6 +616,14 @@ public class Test {
 
 		for (int i = 0; i < myTypesInstances.get(Type).size(); i++) {
 			if (!param.equals("")) {
+				if (passesParameter(paramPairs, myTypesInstances.get(Type).get(i), paramStatus[1])) {
+
+					for (Map.Entry<String, Object> fieldEntry : arrayInnerObjects.entrySet()) {
+						String fieldName = fieldEntry.getKey();
+						Object attributes = fieldEntry.getValue();
+						myTypesInstances.get(Type).get(i).put(fieldName, attributes);
+					}
+				}
 
 			} else {
 				for (Map.Entry<String, Object> fieldEntry : arrayInnerObjects.entrySet()) {
