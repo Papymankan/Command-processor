@@ -4,12 +4,14 @@ import java.util.*;
 
 public class Test {
 
-	public static void WarnningMessage(String input) {
-		System.out.println("WARNNING ==> " + input);
+	public static void printLine() {
+		System.out.println("===================================================");
 	}
 
 	public static void ErrorMessage(String input) {
+		printLine();
 		System.out.println("ERROR ==> " + input);
+		printLine();
 	}
 
 	public static boolean isValidFormat(String input) {
@@ -297,7 +299,12 @@ public class Test {
 					updateInstance(Type, JSONInput, myTypes, myTypesInstances, Parameter.replace(" ", ""));
 					break;
 				case "delete":
+					if (!JSONInput.equals("")) {
+						ErrorMessage("There is no need for json, for deleting !!!");
+						return;
+					}
 
+					deleteInstances(Type, myTypes, myTypesInstances, Parameter.replace(" ", ""));
 					break;
 				case "search":
 					if (!JSONInput.equals("")) {
@@ -326,89 +333,95 @@ public class Test {
 
 		if (myTypes.containsKey(Type)) {
 			ErrorMessage("The Type { " + Type + " } already exists");
-		} else {
+			return;
+		}
 
-			JSONInput = JSONInput.substring(1, JSONInput.length() - 1).replace(" ", ""); // "key":{...},"key":{...}
+		JSONInput = JSONInput.substring(1, JSONInput.length() - 1).replace(" ", ""); 
 
-			Map<String, Map<String, Object>> map = new HashMap<>();
+		Map<String, Map<String, Object>> map = new HashMap<>();
 
-			String[] pairs = JSONInput.split("},");
+		String[] pairs = JSONInput.split("},");
 
-			for (int i = 0; i < pairs.length; i++) {
+		for (int i = 0; i < pairs.length; i++) {
 
-				if (!pairs[i].endsWith("}")) {
-					pairs[i] += "}";
-				} // "key":{...}
+			if (!pairs[i].endsWith("}")) {
+				pairs[i] += "}";
+			} 
 
-				int braceIndex = pairs[i].indexOf(":{");
-				String inner = pairs[i].substring(braceIndex + 2, pairs[i].length() - 1); // "type":"int","unique":false
-				String Key = pairs[i].substring(1, braceIndex - 1); // id
+			int braceIndex = pairs[i].indexOf(":{");
+			String inner = pairs[i].substring(braceIndex + 2, pairs[i].length() - 1); 
+			String Key = pairs[i].substring(1, braceIndex - 1); 
 
-				if (!isAlphaNumUnderscore(Key)) {
-					ErrorMessage("{ " + Key + " } Key name is not valid");
+			if (!isAlphaNumUnderscore(Key)) {
+				ErrorMessage("{ " + Key + " } Key name is not valid");
+				return;
+			}
+
+			if (inner.equals("")) {
+				ErrorMessage("Entered Object { " + Key + " } can not be empty !!");
+				return;
+			}
+
+			if (map.containsKey(Key)) {
+				ErrorMessage("The Key { " + Key + " } has been entered more than 1 time !!");
+				return;
+			}
+
+			Map<String, Object> InnerMap = new HashMap<>();
+			String[] innerPairs = inner.split(","); 
+
+			for (int j = 0; j < innerPairs.length; j++) {
+				String[] innerInnerPairs = innerPairs[j].split(":"); 
+
+				String innerKey = innerInnerPairs[0].substring(1, innerInnerPairs[0].length() - 1);
+
+				if (!innerKey.equals("type") && !innerKey.equals("unique") && !innerKey.equals("required")) {
+					ErrorMessage("Key { " + innerKey + " } is not Valid !!  (type , unique , required)");
 					return;
 				}
 
-				if (inner.equals("")) {
-					ErrorMessage("Entered Object { " + Key + " } can not be empty !!");
-					return;
-				}
+				if (innerInnerPairs[1].startsWith("\"")) {
+					String str = innerInnerPairs[1].substring(1, innerInnerPairs[1].length() - 1);
 
-				if (map.containsKey(Key)) {
-					ErrorMessage("The Key { " + Key + " } has been entered more than 1 time !!");
-					return;
-				}
+					if (str.equals("int") || str.equals("dbl") || str.equals("string") || str.equals("bool")) {
 
-				Map<String, Object> InnerMap = new HashMap<>();
-				String[] innerPairs = inner.split(","); // ["type":"int","unique":false]
-
-				for (int j = 0; j < innerPairs.length; j++) {
-					String[] innerInnerPairs = innerPairs[j].split(":"); // ["type","int"]
-
-					String innerKey = innerInnerPairs[0].substring(1, innerInnerPairs[0].length() - 1);
-
-					if (!innerKey.equals("type") && !innerKey.equals("unique") && !innerKey.equals("required")) {
-						ErrorMessage("Key { " + innerKey + " } is not Valid !!  (type , unique , required)");
-						return;
-					}
-
-					if (innerInnerPairs[1].startsWith("\"")) {
-						String str = innerInnerPairs[1].substring(1, innerInnerPairs[1].length() - 1);
-
-						if (str.equals("int") || str.equals("dbl") || str.equals("string") || str.equals("bool")) {
-
-							InnerMap.put(innerKey, str);
-						} else {
-							ErrorMessage("{ " + str + " } is not valid !!");
-							return;
-						}
-
-					} else if (innerInnerPairs[1].equals("true")) {
-						InnerMap.put(innerKey, true);
-					} else if (innerInnerPairs[1].equals("false")) {
-						InnerMap.put(innerKey, false);
+						InnerMap.put(innerKey, str);
 					} else {
-						ErrorMessage("Fields must be (int , dbl , sting , bool , true , false), but your input is { "
-								+ innerInnerPairs[1] + "} !!!");
+						ErrorMessage("{ " + str + " } is not valid !!");
 						return;
 					}
 
-				}
-
-				if (InnerMap.containsKey("type"))
-					map.put(Key, InnerMap);
-				else {
-					ErrorMessage("{ Type } field is required for each type keys !!");
+				} else if (innerInnerPairs[1].equals("true")) {
+					InnerMap.put(innerKey, true);
+				} else if (innerInnerPairs[1].equals("false")) {
+					InnerMap.put(innerKey, false);
+				} else {
+					ErrorMessage("Fields must be (int , dbl , sting , bool , true , false), but your input is { "
+							+ innerInnerPairs[1] + "} !!!");
 					return;
 				}
 
 			}
 
-			myTypes.put(Type, map);
-
-			myTypesInstances.put(Type, new ArrayList<Map<String, Object>>());
+			if (InnerMap.containsKey("type"))
+				map.put(Key, InnerMap);
+			else {
+				ErrorMessage("{ Type } field is required for each type keys !!");
+				return;
+			}
 
 		}
+
+		myTypes.put(Type, map);
+
+		myTypesInstances.put(Type, new ArrayList<Map<String, Object>>());
+
+		System.out.println("");
+		System.out.println(myTypes.get(Type));
+		System.out.println("");
+
+		System.out.println("Your type was created successfully !!");
+		printLine();
 
 	}
 
@@ -716,8 +729,84 @@ public class Test {
 				} else
 					System.out.println(myTypesInstances.get(Type).get(i));
 			}
-		}else
-		{
+		} else {
+			ErrorMessage("There is no record based on your parameter !!");
+			return;
+		}
+
+	}
+
+	public static void deleteInstances(String Type,
+			Map<String, Map<String, Map<String, Object>>> myTypes,
+			Map<String, ArrayList<Map<String, Object>>> myTypesInstances, String Parameter) {
+
+		if (!myTypes.containsKey(Type)) {
+			ErrorMessage("There is no { " + Type + " } type !!");
+			return;
+		}
+
+		if (myTypesInstances.get(Type).size() == 0) {
+			ErrorMessage("There is no instance with { " + Type + " } type !!");
+			return;
+		}
+
+		String param = "";
+		param = !Parameter.equals("") ? Parameter.substring(1, Parameter.length() - 1) : "";
+
+		Object[] paramStatus = isValidParameter(param);
+
+		String[] paramPairs = {};
+
+		if (paramStatus[0].equals(true)) {
+
+			if (param.contains("=")) {
+				paramPairs = param.split("(?<=[<>=])|(?=[<>=])");
+			} else if (param.contains(">")) {
+				paramPairs = param.split("(?<=[<>=])|(?=[<>=])");
+			} else if (param.contains("<")) {
+				paramPairs = param.split("(?<=[<>=])|(?=[<>=])");
+			} else {
+				ErrorMessage("SomeThing went wrong !!");
+				return;
+			}
+
+			if (!myTypes.get(Type).containsKey(paramPairs[0])) {
+				ErrorMessage("There is no { " + paramPairs[0] + " } in { " + Type + " } Type !!");
+				return;
+			}
+
+		}
+
+		if (paramStatus[0].equals(false) && !param.equals("")) {
+			ErrorMessage("The Parameter is not valid !!!");
+			return;
+		}
+
+		int count = 0;
+		for (int i = 0; i < myTypesInstances.get(Type).size(); i++) {
+			if (!param.equals("")) {
+
+				if (passesParameter(paramPairs, myTypesInstances.get(Type).get(i), paramStatus[1])) {
+					count++;
+				}
+			} else
+				count++;
+		}
+
+		ArrayList<Map<String, Object>> filteredList = new ArrayList<>();
+
+		if (count > 0) {
+
+			for (int i = 0; i < myTypesInstances.get(Type).size(); i++) {
+				if (!param.equals("")) {
+					if (!passesParameter(paramPairs, myTypesInstances.get(Type).get(i), paramStatus[1])) {
+						filteredList.add(myTypesInstances.get(Type).get(i));
+					}
+				}
+			}
+
+			myTypesInstances.put(Type, filteredList);
+		} else {
 			ErrorMessage("There is no record based on your parameter !!");
 			return;
 		}
@@ -733,8 +822,6 @@ public class Test {
 		Map<String, ArrayList<Map<String, Object>>> myTypesInstances = new HashMap<>();
 
 		while (true) {
-			System.out.println("Type => " + myTypes);
-			System.out.println("Instances => " + myTypesInstances);
 			input = scanner.nextLine();
 
 			if (input.equals("exit"))
