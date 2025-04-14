@@ -260,6 +260,11 @@ public class Test {
 
 			JSONInput = input;
 
+			if(!isValidJSON(JSONInput)){
+				ErrorMessage("There is a problem with your json input !!");
+				return;
+			}
+
 			switch (CommandType) {
 				case "create":
 
@@ -278,12 +283,12 @@ public class Test {
 				case "insert":
 
 					if (!Parameter.equals("")) {
-						ErrorMessage("Create Command does not accept any parameters !");
+						ErrorMessage("Insert Command does not accept any parameters !");
 						break;
 					}
 
 					if (JSONInput.equals("")) {
-						ErrorMessage("Create Command accepts a JSON Input !");
+						ErrorMessage("Insert Command accepts a JSON Input !");
 						break;
 					}
 
@@ -336,7 +341,7 @@ public class Test {
 			return;
 		}
 
-		JSONInput = JSONInput.substring(1, JSONInput.length() - 1).replace(" ", ""); 
+		JSONInput = JSONInput.substring(1, JSONInput.length() - 1).replace(" ", "");
 
 		Map<String, Map<String, Object>> map = new HashMap<>();
 
@@ -346,11 +351,11 @@ public class Test {
 
 			if (!pairs[i].endsWith("}")) {
 				pairs[i] += "}";
-			} 
+			}
 
 			int braceIndex = pairs[i].indexOf(":{");
-			String inner = pairs[i].substring(braceIndex + 2, pairs[i].length() - 1); 
-			String Key = pairs[i].substring(1, braceIndex - 1); 
+			String inner = pairs[i].substring(braceIndex + 2, pairs[i].length() - 1);
+			String Key = pairs[i].substring(1, braceIndex - 1);
 
 			if (!isAlphaNumUnderscore(Key)) {
 				ErrorMessage("{ " + Key + " } Key name is not valid");
@@ -368,10 +373,10 @@ public class Test {
 			}
 
 			Map<String, Object> InnerMap = new HashMap<>();
-			String[] innerPairs = inner.split(","); 
+			String[] innerPairs = inner.split(",");
 
 			for (int j = 0; j < innerPairs.length; j++) {
-				String[] innerInnerPairs = innerPairs[j].split(":"); 
+				String[] innerInnerPairs = innerPairs[j].split(":");
 
 				String innerKey = innerInnerPairs[0].substring(1, innerInnerPairs[0].length() - 1);
 
@@ -450,38 +455,37 @@ public class Test {
 			String fieldName = fieldEntry.getKey();
 			Map<String, Object> attributes = fieldEntry.getValue();
 
-			if (attributes.containsKey("required") && attributes.get("required").equals(true)) {
-				if (!arrayInnerObjects.containsKey(fieldName)) {
-					ErrorMessage("The { " + fieldName + " } key is required !");
-					return; // here
-				}
+			if (attributes.containsKey("required") && attributes.get("required").equals(true)
+					&& !arrayInnerObjects.containsKey(fieldName)) {
+				ErrorMessage("The { " + fieldName + " } key is required !");
+				return;
 			}
 
 			if (arrayInnerObjects.containsKey(fieldName)) {
 				switch ((String) attributes.get("type")) {
 					case "string":
 						if (!(arrayInnerObjects.get(fieldName) instanceof String)) {
-							ErrorMessage("The " + fieldName + " value should be String !! ");
+							ErrorMessage("The { " + fieldName + " } value should be String !! ");
 							return;
 						}
 						break;
 
 					case "int":
 						if (!(arrayInnerObjects.get(fieldName) instanceof Integer)) {
-							ErrorMessage("The " + fieldName + " value should be  Integer !! ");
+							ErrorMessage("The { " + fieldName + " } value should be  Integer !! ");
 							return;
 						}
 						break;
 
 					case "dbl":
 						if (!(arrayInnerObjects.get(fieldName) instanceof Double)) {
-							ErrorMessage("The " + fieldName + " value should be Double !! ");
+							ErrorMessage("The { " + fieldName + " } value should be Double !! ");
 							return;
 						}
 						break;
 					case "bool":
 						if (!(arrayInnerObjects.get(fieldName) instanceof Boolean)) {
-							ErrorMessage("The type key's value should be Boolean !! ");
+							ErrorMessage("The { " + fieldName + " } value should be Boolean !! ");
 							return;
 						}
 						break;
@@ -525,6 +529,11 @@ public class Test {
 		}
 
 		myTypesInstances.get(Type).add(arrayInnerObjects);
+		System.out.println("");
+		System.out.println(arrayInnerObjects);
+		System.out.println("");
+		System.out.println("Your instance was added successfully !!");
+		printLine();
 	}
 
 	public static void updateInstance(String Type, String JSONInput,
@@ -658,6 +667,11 @@ public class Test {
 				}
 			}
 		}
+		System.out.println("");
+		System.out.println(myTypesInstances.get(Type));
+		System.out.println("");
+
+		System.out.println("Your instances list was updated successfully !!");
 
 	}
 
@@ -719,16 +733,18 @@ public class Test {
 		}
 
 		if (count > 0) {
-
+			System.out.println("{ " + Type + " } =>");
 			for (int i = 0; i < myTypesInstances.get(Type).size(); i++) {
 				if (!param.equals("")) {
 
 					if (passesParameter(paramPairs, myTypesInstances.get(Type).get(i), paramStatus[1])) {
-						System.out.println(myTypesInstances.get(Type).get(i));
+						System.out.println("	" + myTypesInstances.get(Type).get(i));
 					}
 				} else
-					System.out.println(myTypesInstances.get(Type).get(i));
+					System.out.println("	" + myTypesInstances.get(Type).get(i));
 			}
+
+			printLine();
 		} else {
 			ErrorMessage("There is no record based on your parameter !!");
 			return;
@@ -822,6 +838,7 @@ public class Test {
 		Map<String, ArrayList<Map<String, Object>>> myTypesInstances = new HashMap<>();
 
 		while (true) {
+			System.out.println("");
 			input = scanner.nextLine();
 
 			if (input.equals("exit"))
