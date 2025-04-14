@@ -827,6 +827,14 @@ public class Test {
 			return;
 		}
 
+		System.out.println("");
+		System.out.println(myTypesInstances.get(Type));
+		System.out.println("");
+
+
+		System.out.println("Your instance was deleted successfully !!");
+		printLine();
+
 	}
 
 	public static void main(String[] args) {
