@@ -20,11 +20,13 @@ public class Test {
 	}
 
 	public static boolean isValidJSON(String json) {
+		System.out.println("0" + json);
 		if (!json.startsWith("{") || !json.endsWith("}")) {
 			return false;
 		}
 
 		json = json.substring(1, json.length() - 1);
+		System.out.println("1" + json);
 
 		String[] pairs = json.split("},");
 		for (int i = 0; i < pairs.length; i++) {
@@ -33,6 +35,7 @@ public class Test {
 			}
 
 			if (!pairs[i].matches("^\"[^\"]+\":\\{.*\\}$")) {
+				System.out.println("2" + pairs[i]);
 				return false;
 			}
 
@@ -44,6 +47,7 @@ public class Test {
 
 				for (String pair : innerPairs) {
 					if (!pair.matches("^\"[^\"]+\":(true|false|\"[^\"]*\"|\\d+\\.\\d+|\\d+)$")) {
+						System.out.println("3" + pair);
 						return false;
 					}
 				}
@@ -260,11 +264,6 @@ public class Test {
 
 			JSONInput = input;
 
-			if(!isValidJSON(JSONInput)){
-				ErrorMessage("There is a problem with your json input !!");
-				return;
-			}
-
 			switch (CommandType) {
 				case "create":
 
@@ -319,6 +318,8 @@ public class Test {
 
 					searchInstances(Type, myTypes, myTypesInstances, Parameter.replace(" ", ""));
 					break;
+				default:
+					System.out.println("please Enter a valid command");
 			}
 
 		} else {
@@ -338,6 +339,11 @@ public class Test {
 
 		if (myTypes.containsKey(Type)) {
 			ErrorMessage("The Type { " + Type + " } already exists");
+			return;
+		}
+
+		if (!isValidJSON(JSONInput.replace(" ", ""))) {
+			ErrorMessage("There is a problem with your json input !!");
 			return;
 		}
 
@@ -830,7 +836,6 @@ public class Test {
 		System.out.println("");
 		System.out.println(myTypesInstances.get(Type));
 		System.out.println("");
-
 
 		System.out.println("Your instance was deleted successfully !!");
 		printLine();
